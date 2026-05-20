@@ -1,0 +1,33 @@
+spring:
+  datasource:
+    url: ${DB_URL}                # Must be set — no fallback in prod
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    hikari:
+      maximum-pool-size: 20       # Higher pool for prod load
+      minimum-idle: 5
+
+  jpa:
+    hibernate:
+      ddl-auto: validate          # Never auto-migrate in prod
+    show-sql: false
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info, metrics   # Restrict in prod
+  endpoint:
+    health:
+      show-details: when-authorized
+
+logging:
+  level:
+    root: WARN
+    com.yourcompany: INFO
+
+app:
+  jwt:
+    secret: ${JWT_SECRET}         # Must come from secrets manager / env — no fallback
+    expiration-ms: 900000
+    refresh-expiration-ms: 86400000   # Shorter refresh in prod (1 day vs 7)
