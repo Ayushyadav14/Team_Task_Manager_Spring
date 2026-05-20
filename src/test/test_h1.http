@@ -1,0 +1,814 @@
+@baseUrl = http://localhost:8080
+@adminEmail = admin@example.com
+@adminPassword = AdminPass123!
+@memberName = Test Member
+@memberPassword = MemberPass123!
+@projectName = Demo Project
+@taskTitle = Demo Task
+
+
+### ──────────────────────────────────────────
+### Group: Auth
+### ──────────────────────────────────────────
+
+### Auth: login admin
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{adminEmail}}",
+  "password": "{{adminPassword}}"
+}
+
+> {%
+    client.global.set("adminToken", response.body.data.token);
+    client.global.set("adminRefreshToken", response.body.data.refreshToken);
+    client.global.set("adminUserId", response.body.data.userId);
+    client.test("login admin returns token", function () {
+        client.assert(response.status === 200, "Expected 200 OK");
+        client.assert(!!response.body.data.token, "Expected access token");
+    });
+%}
+
+
+### Auth: register member
+POST {{baseUrl}}/api/auth/register
+Content-Type: application/json
+
+{
+  "name": "{{memberName}}",
+  "email": "member+{{$timestamp}}@example.com",
+  "password": "{{memberPassword}}"
+}
+
+> {%
+    client.global.set("memberEmail", response.body.data.email);
+    client.test("register member returns email", function () {
+        client.assert(response.status === 201, "Expected 201 Created");
+        client.assert(!!response.body.data.email, "Expected email in response");
+    });
+%}
+
+
+### Auth: login member
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{memberEmail}}",
+  "password": "{{memberPassword}}"
+}
+
+> {%
+    client.global.set("memberToken", response.body.data.token);
+    client.global.set("memberRefreshToken", response.body.data.refreshToken);
+    client.global.set("memberUserId", response.body.data.userId);
+    client.test("login member returns token", function () {
+        client.assert(response.status === 200, "Expected 200 OK");
+        client.assert(!!response.body.data.token, "Expected access token");
+    });
+%}
+
+
+### Auth: refresh member token
+POST {{baseUrl}}/api/auth/refresh
+Content-Type: application/json
+
+{
+  "refreshToken": "{{memberRefreshToken}}"
+}
+
+> {%
+    client.global.set("memberToken", response.body.data.token);
+    client.test("refresh token returns new access token", function () {
+        client.assert(response.status === 200, "Expected 200 OK");
+        client.assert(!!response.body.data.token, "Expected access token");
+    });
+%}
+
+
+### Auth: logout member
+POST {{baseUrl}}/api/auth/logout
+Authorization: Bearer {{memberToken}}
+Content-Type: application/json
+
+{
+  "refreshToken": "{{memberRefreshToken}}"
+}
+
+> {%
+    client.test("logout member", function () {
+        client.assert(response.status === 200, "Expected 200 OK");
+    });
+%}
+
+
+### ──────────────────────────────────────────
+### Group: Users
+### ──────────────────────────────────────────
+
+### Users: setup - login admin
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{adminEmail}}",
+  "password": "{{adminPassword}}"
+}
+
+> {%
+    client.global.set("adminToken", response.body.data.token);
+    client.global.set("adminRefreshToken", response.body.data.refreshToken);
+    client.global.set("adminUserId", response.body.data.userId);
+    client.test("login admin returns token", function () {
+        client.assert(response.status === 200, "Expected 200 OK");
+        client.assert(!!response.body.data.token, "Expected access token");
+    });
+%}
+
+
+### Users: setup - register member
+POST {{baseUrl}}/api/auth/register
+Content-Type: application/json
+
+{
+  "name": "{{memberName}}",
+  "email": "member+{{$timestamp}}@example.com",
+  "password": "{{memberPassword}}"
+}
+
+> {%
+    client.global.set("memberEmail", response.body.data.email);
+    client.test("register member returns email", function () {
+        client.assert(response.status === 201, "Expected 201 Created");
+        client.assert(!!response.body.data.email, "Expected email in response");
+    });
+%}
+
+
+### Users: setup - login member
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{memberEmail}}",
+  "password": "{{memberPassword}}"
+}
+
+> {%
+    client.global.set("memberToken", response.body.data.token);
+    client.global.set("memberRefreshToken", response.body.data.refreshToken);
+    client.global.set("memberUserId", response.body.data.userId);
+    client.test("login member returns token", function () {
+        client.assert(response.status === 200, "Expected 200 OK");
+        client.assert(!!response.body.data.token, "Expected access token");
+    });
+%}
+
+
+### Users: get current user
+GET {{baseUrl}}/api/users/me
+Authorization: Bearer {{memberToken}}
+
+> {%
+    client.test("get current user", function () {
+        client.assert(response.status === 200, "Expected 200 OK");
+    });
+%}
+
+
+### Users: update current user
+PUT {{baseUrl}}/api/users/me
+Authorization: Bearer {{memberToken}}
+Content-Type: application/json
+
+{
+  "name": "{{memberName}} Updated"
+}
+
+> {%
+    client.test("update current user", function () {
+        client.assert(response.status === 200, "Expected 200 OK");
+    });
+%}
+
+
+### Users: list all users (admin)
+GET {{baseUrl}}/api/users?page=0&size=5
+Authorization: Bearer {{adminToken}}
+
+> {%
+    client.test("list users", function () {
+        client.assert(response.status === 200, "Expected 200 OK");
+    });
+%}
+
+
+### Users: update user role (admin)
+PUT {{baseUrl}}/api/users/{{memberUserId}}/role
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "role": "ADMIN"
+}
+
+> {%
+    client.test("update user role", function () {
+        client.assert(response.status === 200, "Expected 200 OK");
+    });
+%}
+
+
+### Users: delete user (admin)
+DELETE {{baseUrl}}/api/users/{{memberUserId}}
+Authorization: Bearer {{adminToken}}
+
+> {%
+    client.test("delete user", function () {
+        client.assert(response.status === 200, "Expected 200 OK");
+    });
+%}
+
+
+### ──────────────────────────────────────────
+### Group: Projects
+### ──────────────────────────────────────────
+
+### Projects: setup - login admin
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{adminEmail}}",
+  "password": "{{adminPassword}}"
+}
+
+> {%
+    client.global.set("adminToken", response.body.data.token);
+    client.global.set("adminRefreshToken", response.body.data.refreshToken);
+    client.global.set("adminUserId", response.body.data.userId);
+    client.test("login admin returns token", function () {
+        client.assert(response.status === 200, "Expected 200 OK");
+        client.assert(!!response.body.data.token, "Expected access token");
+    });
+%}
+
+
+### Projects: setup - register member
+POST {{baseUrl}}/api/auth/register
+Content-Type: application/json
+
+{
+  "name": "{{memberName}}",
+  "email": "member+{{$timestamp}}@example.com",
+  "password": "{{memberPassword}}"
+}
+
+> {%
+    client.global.set("memberEmail", response.body.data.email);
+    client.test("register member returns email", function () {
+        client.assert(response.status === 201, "Expected 201 Created");
+        client.assert(!!response.body.data.email, "Expected email in response");
+    });
+%}
+
+
+### Projects: setup - login member
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{memberEmail}}",
+  "password": "{{memberPassword}}"
+}
+
+> {%
+    client.global.set("memberToken", response.body.data.token);
+    client.global.set("memberRefreshToken", response.body.data.refreshToken);
+    client.global.set("memberUserId", response.body.data.userId);
+    client.test("login member returns token", function () {
+        client.assert(response.status === 200, "Expected 200 OK");
+        client.assert(!!response.body.data.token, "Expected access token");
+    });
+%}
+
+
+### Projects: create project (admin)
+POST {{baseUrl}}/api/projects
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "name": "{{projectName}}",
+  "description": "Project created by HTTP test"
+}
+
+> {%
+    client.global.set("projectId", response.body.data.id);
+    client.test("create project", function () {
+        client.assert(response.status === 201, "Expected 201 Created");
+        client.assert(!!response.body.data.id, "Expected project id");
+    });
+%}
+
+
+### Projects: add member (admin)
+POST {{baseUrl}}/api/projects/{{projectId}}/members
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "userId": "{{memberUserId}}",
+  "projectRole": "CONTRIBUTOR"
+}
+
+> {%
+    client.test("add project member", function () {
+        client.assert(response.status === 200, "Expected 200 OK");
+    });
+%}
+
+
+### Projects: list projects (member)
+GET {{baseUrl}}/api/projects?page=0&size=10
+Authorization: Bearer {{memberToken}}
+
+> {%
+    client.test("list projects", function () {
+        client.assert(response.status === 200, "Expected 200 OK");
+    });
+%}
+
+
+### Projects: get by id (member)
+GET {{baseUrl}}/api/projects/{{projectId}}
+Authorization: Bearer {{memberToken}}
+
+> {%
+    client.test("get project by id", function () {
+        client.assert(response.status === 200, "Expected 200 OK");
+    });
+%}
+
+
+### Projects: update project (admin)
+PUT {{baseUrl}}/api/projects/{{projectId}}
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "name": "{{projectName}} Updated",
+  "description": "Updated description",
+  "status": "ACTIVE"
+}
+
+> {%
+    client.test("update project", function () {
+        client.assert(response.status === 200, "Expected 200 OK");
+    });
+%}
+
+
+### Projects: remove member (admin)
+DELETE {{baseUrl}}/api/projects/{{projectId}}/members/{{memberUserId}}
+Authorization: Bearer {{adminToken}}
+
+> {%
+    client.test("remove project member", function () {
+        client.assert(response.status === 200, "Expected 200 OK");
+    });
+%}
+
+
+### Projects: delete project (admin)
+DELETE {{baseUrl}}/api/projects/{{projectId}}
+Authorization: Bearer {{adminToken}}
+
+> {%
+    client.test("delete project", function () {
+        client.assert(response.status === 200, "Expected 200 OK");
+    });
+%}
+
+
+### ──────────────────────────────────────────
+### Group: Tasks
+### ──────────────────────────────────────────
+
+### Tasks: setup - login admin
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{adminEmail}}",
+  "password": "{{adminPassword}}"
+}
+
+> {%
+    client.global.set("adminToken", response.body.data.token);
+    client.global.set("adminRefreshToken", response.body.data.refreshToken);
+    client.global.set("adminUserId", response.body.data.userId);
+    client.test("login admin returns token", function () {
+        client.assert(response.status === 200, "Expected 200 OK");
+        client.assert(!!response.body.data.token, "Expected access token");
+    });
+%}
+
+
+### Tasks: setup - register member
+POST {{baseUrl}}/api/auth/register
+Content-Type: application/json
+
+{
+  "name": "{{memberName}}",
+  "email": "member+{{$timestamp}}@example.com",
+  "password": "{{memberPassword}}"
+}
+
+> {%
+    client.global.set("memberEmail", response.body.data.email);
+    client.test("register member returns email", function () {
+        client.assert(response.status === 201, "Expected 201 Created");
+        client.assert(!!response.body.data.email, "Expected email in response");
+    });
+%}
+
+
+### Tasks: setup - login member
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{memberEmail}}",
+  "password": "{{memberPassword}}"
+}
+
+> {%
+    client.global.set("memberToken", response.body.data.token);
+    client.global.set("memberRefreshToken", response.body.data.refreshToken);
+    client.global.set("memberUserId", response.body.data.userId);
+    client.test("login member returns token", function () {
+        client.assert(response.status === 200, "Expected 200 OK");
+        client.assert(!!response.body.data.token, "Expected access token");
+    });
+%}
+
+
+### Tasks: setup - create project (admin)
+POST {{baseUrl}}/api/projects
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "name": "{{projectName}}",
+  "description": "Project created by HTTP test"
+}
+
+> {%
+    client.global.set("projectId", response.body.data.id);
+    client.test("create project", function () {
+        client.assert(response.status === 201, "Expected 201 Created");
+        client.assert(!!response.body.data.id, "Expected project id");
+    });
+%}
+
+
+### Tasks: setup - add member (admin)
+POST {{baseUrl}}/api/projects/{{projectId}}/members
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "userId": "{{memberUserId}}",
+  "projectRole": "CONTRIBUTOR"
+}
+
+> {%
+    client.test("add project member", function () {
+        client.assert(response.status === 200, "Expected 200 OK");
+    });
+%}
+
+
+### Tasks: create task (admin)
+POST {{baseUrl}}/api/projects/{{projectId}}/tasks
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "title": "{{taskTitle}}",
+  "description": "Task created by HTTP test",
+  "assigneeId": "{{memberUserId}}",
+  "priority": "HIGH",
+  "dueDate": "2030-01-01",
+  "tags": [
+    "api",
+    "http"
+  ]
+}
+
+> {%
+    client.global.set("taskId", response.body.data.id);
+    client.test("create task", function () {
+        client.assert(response.status === 201, "Expected 201 Created");
+        client.assert(!!response.body.data.id, "Expected task id");
+    });
+%}
+
+
+### Tasks: list tasks (member)
+GET {{baseUrl}}/api/projects/{{projectId}}/tasks?page=0&size=10
+Authorization: Bearer {{memberToken}}
+
+> {%
+    client.test("list tasks", function () {
+        client.assert(response.status === 200, "Expected 200 OK");
+    });
+%}
+
+
+### Tasks: get task by id (member)
+GET {{baseUrl}}/api/projects/{{projectId}}/tasks/{{taskId}}
+Authorization: Bearer {{memberToken}}
+
+> {%
+    client.test("get task by id", function () {
+        client.assert(response.status === 200, "Expected 200 OK");
+    });
+%}
+
+
+### Tasks: update task (admin)
+PUT {{baseUrl}}/api/projects/{{projectId}}/tasks/{{taskId}}
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "title": "{{taskTitle}} Updated",
+  "description": "Updated task description",
+  "assigneeId": "{{memberUserId}}",
+  "priority": "MEDIUM",
+  "dueDate": "2030-01-02",
+  "tags": [
+    "api",
+    "http",
+    "updated"
+  ]
+}
+
+> {%
+    client.test("update task", function () {
+        client.assert(response.status === 200, "Expected 200 OK");
+    });
+%}
+
+
+### Tasks: update task status → IN_PROGRESS (member)
+PATCH {{baseUrl}}/api/projects/{{projectId}}/tasks/{{taskId}}/status
+Authorization: Bearer {{memberToken}}
+Content-Type: application/json
+
+{
+  "status": "IN_PROGRESS"
+}
+
+> {%
+    client.test("update task status", function () {
+        client.assert(response.status === 200, "Expected 200 OK");
+    });
+%}
+
+
+### Tasks: add comment (member)
+POST {{baseUrl}}/api/projects/{{projectId}}/tasks/{{taskId}}/comments
+Authorization: Bearer {{memberToken}}
+Content-Type: application/json
+
+{
+  "text": "First comment from HTTP test"
+}
+
+> {%
+    client.test("add comment", function () {
+        client.assert(response.status === 201, "Expected 201 Created");
+    });
+%}
+
+
+### Tasks: get task to extract comment id (member)
+GET {{baseUrl}}/api/projects/{{projectId}}/tasks/{{taskId}}
+Authorization: Bearer {{memberToken}}
+
+> {%
+    if (response.status === 200 && response.body && response.body.data && response.body.data.comments) {
+        if (response.body.data.comments.length > 0) {
+            client.global.set("commentId", response.body.data.comments[0].id);
+        }
+    }
+    client.test("get task comments", function () {
+        client.assert(response.status === 200, "Expected 200 OK");
+    });
+%}
+
+
+### Tasks: delete comment (member)
+DELETE {{baseUrl}}/api/projects/{{projectId}}/tasks/{{taskId}}/comments/{{commentId}}
+Authorization: Bearer {{memberToken}}
+
+> {%
+    client.test("delete comment", function () {
+        client.assert(response.status === 200, "Expected 200 OK");
+    });
+%}
+
+
+### Tasks: delete task (admin)
+DELETE {{baseUrl}}/api/projects/{{projectId}}/tasks/{{taskId}}
+Authorization: Bearer {{adminToken}}
+
+> {%
+    client.test("delete task", function () {
+        client.assert(response.status === 200, "Expected 200 OK");
+    });
+%}
+
+
+### Tasks: delete project (admin)
+DELETE {{baseUrl}}/api/projects/{{projectId}}
+Authorization: Bearer {{adminToken}}
+
+> {%
+    client.test("delete project", function () {
+        client.assert(response.status === 200, "Expected 200 OK");
+    });
+%}
+
+
+### Tasks: delete user (admin)
+DELETE {{baseUrl}}/api/users/{{memberUserId}}
+Authorization: Bearer {{adminToken}}
+
+> {%
+    client.test("delete user", function () {
+        client.assert(response.status === 200, "Expected 200 OK");
+    });
+%}
+
+
+### ──────────────────────────────────────────
+### Group: Dashboard
+### ──────────────────────────────────────────
+
+### Dashboard: setup - login admin
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{adminEmail}}",
+  "password": "{{adminPassword}}"
+}
+
+> {%
+    client.global.set("adminToken", response.body.data.token);
+    client.global.set("adminRefreshToken", response.body.data.refreshToken);
+    client.global.set("adminUserId", response.body.data.userId);
+    client.test("login admin returns token", function () {
+        client.assert(response.status === 200, "Expected 200 OK");
+        client.assert(!!response.body.data.token, "Expected access token");
+    });
+%}
+
+
+### Dashboard: setup - register member
+POST {{baseUrl}}/api/auth/register
+Content-Type: application/json
+
+{
+  "name": "{{memberName}}",
+  "email": "member+{{$timestamp}}@example.com",
+  "password": "{{memberPassword}}"
+}
+
+> {%
+    client.global.set("memberEmail", response.body.data.email);
+    client.test("register member returns email", function () {
+        client.assert(response.status === 201, "Expected 201 Created");
+        client.assert(!!response.body.data.email, "Expected email in response");
+    });
+%}
+
+
+### Dashboard: setup - login member
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{memberEmail}}",
+  "password": "{{memberPassword}}"
+}
+
+> {%
+    client.global.set("memberToken", response.body.data.token);
+    client.global.set("memberRefreshToken", response.body.data.refreshToken);
+    client.global.set("memberUserId", response.body.data.userId);
+    client.test("login member returns token", function () {
+        client.assert(response.status === 200, "Expected 200 OK");
+        client.assert(!!response.body.data.token, "Expected access token");
+    });
+%}
+
+
+### Dashboard: setup - create project (admin)
+POST {{baseUrl}}/api/projects
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "name": "{{projectName}}",
+  "description": "Project created by HTTP test"
+}
+
+> {%
+    client.global.set("projectId", response.body.data.id);
+    client.test("create project", function () {
+        client.assert(response.status === 201, "Expected 201 Created");
+        client.assert(!!response.body.data.id, "Expected project id");
+    });
+%}
+
+
+### Dashboard: setup - add member (admin)
+POST {{baseUrl}}/api/projects/{{projectId}}/members
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "userId": "{{memberUserId}}",
+  "projectRole": "CONTRIBUTOR"
+}
+
+> {%
+    client.test("add project member", function () {
+        client.assert(response.status === 200, "Expected 200 OK");
+    });
+%}
+
+
+### Dashboard: setup - create task (admin)
+POST {{baseUrl}}/api/projects/{{projectId}}/tasks
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "title": "{{taskTitle}}",
+  "description": "Task created by HTTP test",
+  "assigneeId": "{{memberUserId}}",
+  "priority": "HIGH",
+  "dueDate": "2030-01-01",
+  "tags": [
+    "api",
+    "http"
+  ]
+}
+
+> {%
+    client.global.set("taskId", response.body.data.id);
+    client.test("create task", function () {
+        client.assert(response.status === 201, "Expected 201 Created");
+        client.assert(!!response.body.data.id, "Expected task id");
+    });
+%}
+
+
+### Dashboard: my dashboard (member)
+GET {{baseUrl}}/api/dashboard/my
+Authorization: Bearer {{memberToken}}
+
+> {%
+    client.test("my dashboard", function () {
+        client.assert(response.status === 200, "Expected 200 OK");
+    });
+%}
+
+
+### Dashboard: project stats (member)
+GET {{baseUrl}}/api/dashboard/projects/{{projectId}}/stats
+Authorization: Bearer {{memberToken}}
+
+> {%
+    client.test("project stats", function () {
+        client.assert(response.status === 200, "Expected 200 OK");
+    });
+%}
+
+
+### Dashboard: admin dashboard
+GET {{baseUrl}}/api/dashboard/admin
+Authorization: Bearer {{adminToken}}
+
+> {%
+    client.test("admin dashboard", function () {
+        client.assert(response.status === 200, "Expected 200 OK");
+    });
+%}
