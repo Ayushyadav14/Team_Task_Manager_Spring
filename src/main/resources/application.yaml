@@ -46,3 +46,5 @@ app:
     secret: ${JWT_SECRET}
     expiration-ms: 900000         # 15 min
     refresh-expiration-ms: 604800000  # 7 days
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000;http://localhost:5173}
