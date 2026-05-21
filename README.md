@@ -43,6 +43,12 @@ Base path: `/api`
 - `DELETE /{taskId}/comments/{commentId}` - Delete comment.
 - `DELETE /{taskId}` - Delete task (admin only).
 
+### Join Requests (`/api/projects/{projectId}/join-requests`)
+
+- `POST /` - Request to join a project (authenticated users).
+- `GET /` - List join requests (project owners or system admins).
+- `PATCH /{requestId}` - Approve or reject a join request (project owners or admins, body: `status`).
+
 ### Dashboard (`/api/dashboard`)
 
 - `GET /my` - Current user dashboard.
