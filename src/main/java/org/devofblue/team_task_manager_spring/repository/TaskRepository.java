@@ -55,4 +55,12 @@ public interface TaskRepository extends JpaRepository<Task, UUID> {
 
     @Query("SELECT t FROM Task t WHERE t.project = :project AND t.dueDate IS NOT NULL AND t.dueDate < :today AND t.status <> org.devofblue.team_task_manager_spring.enums.TaskStatus.DONE")
     List<Task> findOverdueByProject(@Param("project") Project project, @Param("today") LocalDate today);
+
+    long countByAssignee(User assignee);
+
+    long countByAssigneeAndStatus(User assignee, TaskStatus status);
+
+    long countByStatus(TaskStatus status);
+
+    List<Task> findTop5ByAssigneeOrderByUpdatedAtDesc(User assignee);
 }

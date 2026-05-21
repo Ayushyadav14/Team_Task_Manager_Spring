@@ -17,9 +17,13 @@ public class DashboardResponse {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class MyDashboard {
-        private Map<String, Long> tasksByStatus;
-        private long overdueCount;
-        private List<UpcomingTask> upcomingDeadlines;
+        private long totalProjects;
+        private long totalTasks;
+        private long completedTasks;
+        private long overdueTasks;
+        private Map<String, Long> taskSummary;
+        private List<DashboardTask> recentTasks;
+        private List<DashboardTask> overdueTasksList;
     }
 
     @Data
@@ -28,11 +32,33 @@ public class DashboardResponse {
     @AllArgsConstructor
     public static class AdminDashboard {
         private long totalProjects;
-        private long totalUsers;
         private long totalTasks;
+        private long completedTasks;
         private long overdueTasks;
-        private List<ProjectSummary> projectSummaries;
-        private List<TeamWorkload> teamWorkload;
+        private Map<String, Long> taskSummary;
+        private List<DashboardProject> recentProjects;
+    }
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class DashboardTask {
+        private String id; // The requirements show id as string (UUID)
+        private String title;
+        private String status;
+        private LocalDate dueDate;
+    }
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class DashboardProject {
+        private String id;
+        private String name;
+        private String status;
+        private java.time.Instant createdAt;
     }
 
     @Data

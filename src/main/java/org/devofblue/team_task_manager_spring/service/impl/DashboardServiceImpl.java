@@ -35,38 +35,46 @@ public class DashboardServiceImpl implements DashboardService {
                 .filter(u -> u.getDeletedAt() == null)
                 .orElseThrow(() -> new ResourceNotFoundException("User", "id", userId));
 
-        List<Task> allTasks = taskRepository.findAllByAssignee(user);
+        long totalProjects = projectMemberRepository.findAllByUser(user).size();
+        long totalTasks = taskRepository.countByAssignee(user);
+        long completedTasks = taskRepository.countByAssigneeAndStatus(user, TaskStatus.DONE);
 
-        // Tasks by status
-        Map<String, Long> tasksByStatus = new LinkedHashMap<>();
+        LocalDate today = LocalDate.now();
+        List<Task> overdueTaskList = taskRepository.findOverdueByAssignee(user, today);
+        long overdueTasksCount = overdueTaskList.size();
+
+        Map<String, Long> taskSummary = new LinkedHashMap<>();
         for (TaskStatus status : TaskStatus.values()) {
-            long count = allTasks.stream()
-                    .filter(t -> t.getStatus() == status)
-                    .count();
-            tasksByStatus.put(status.name(), count);
+            taskSummary.put(status.name(), taskRepository.countByAssigneeAndStatus(user, status));
         }
 
-        // Overdue count
-        LocalDate today = LocalDate.now();
-        long overdueCount = taskRepository.findOverdueByAssignee(user, today).size();
-
-        // Upcoming deadlines (next 7 days)
-        LocalDate weekFromNow = today.plusDays(7);
-        List<Task> upcomingTasks = taskRepository.findUpcomingByAssignee(user, today, weekFromNow);
-        List<DashboardResponse.UpcomingTask> upcomingDeadlines = upcomingTasks.stream()
-                .map(t -> DashboardResponse.UpcomingTask.builder()
-                        .taskId(t.getId())
+        List<Task> recent = taskRepository.findTop5ByAssigneeOrderByUpdatedAtDesc(user);
+        List<DashboardResponse.DashboardTask> recentTasks = recent.stream()
+                .map(t -> DashboardResponse.DashboardTask.builder()
+                        .id(t.getId().toString())
                         .title(t.getTitle())
-                        .dueDate(t.getDueDate())
                         .status(t.getStatus().name())
-                        .projectName(t.getProject().getName())
+                        .dueDate(t.getDueDate())
+                        .build())
+                .toList();
+
+        List<DashboardResponse.DashboardTask> overdueTasksList = overdueTaskList.stream()
+                .map(t -> DashboardResponse.DashboardTask.builder()
+                        .id(t.getId().toString())
+                        .title(t.getTitle())
+                        .status(t.getStatus().name())
+                        .dueDate(t.getDueDate())
                         .build())
                 .toList();
 
         DashboardResponse.MyDashboard dashboard = DashboardResponse.MyDashboard.builder()
-                .tasksByStatus(tasksByStatus)
-                .overdueCount(overdueCount)
-                .upcomingDeadlines(upcomingDeadlines)
+                .totalProjects(totalProjects)
+                .totalTasks(totalTasks)
+                .completedTasks(completedTasks)
+                .overdueTasks(overdueTasksCount)
+                .taskSummary(taskSummary)
+                .recentTasks(recentTasks)
+                .overdueTasksList(overdueTasksList)
                 .build();
 
         return ApiResponse.success(dashboard, "Dashboard retrieved successfully");
@@ -76,51 +84,34 @@ public class DashboardServiceImpl implements DashboardService {
     @Transactional(readOnly = true)
     public ApiResponse<DashboardResponse.AdminDashboard> getAdminDashboard() {
         long totalProjects = projectRepository.count();
-        long totalUsers = userRepository.findAllByDeletedAtIsNull(null).getTotalElements();
         long totalTasks = taskRepository.count();
+        long completedTasks = taskRepository.countByStatus(TaskStatus.DONE);
 
         LocalDate today = LocalDate.now();
-        long overdueTasks = taskRepository.findAllOverdue(today).size();
+        long overdueTasksCount = taskRepository.findAllOverdue(today).size();
 
-        // Project summaries
-        List<Project> allProjects = projectRepository.findAll();
-        List<DashboardResponse.ProjectSummary> projectSummaries = allProjects.stream()
-                .map(p -> DashboardResponse.ProjectSummary.builder()
-                        .projectId(p.getId())
-                        .projectName(p.getName())
-                        .taskCount(taskRepository.countByProject(p))
-                        .overdueCount(taskRepository.findOverdueByProject(p, today).size())
+        Map<String, Long> taskSummary = new LinkedHashMap<>();
+        for (TaskStatus status : TaskStatus.values()) {
+            taskSummary.put(status.name(), taskRepository.countByStatus(status));
+        }
+
+        List<Project> recent = projectRepository.findTop5ByOrderByCreatedAtDesc();
+        List<DashboardResponse.DashboardProject> recentProjects = recent.stream()
+                .map(p -> DashboardResponse.DashboardProject.builder()
+                        .id(p.getId().toString())
+                        .name(p.getName())
                         .status(p.getStatus())
+                        .createdAt(p.getCreatedAt())
                         .build())
-                .toList();
-
-        // Team workload
-        List<User> activeUsers = userRepository.findAllByDeletedAtIsNull(null).getContent();
-        List<DashboardResponse.TeamWorkload> teamWorkload = activeUsers.stream()
-                .map(u -> {
-                    List<Task> userTasks = taskRepository.findAllByAssignee(u);
-                    long assigned = userTasks.size();
-                    long completed = userTasks.stream()
-                            .filter(t -> t.getStatus() == TaskStatus.DONE)
-                            .count();
-                    long overdue = taskRepository.findOverdueByAssignee(u, today).size();
-                    return DashboardResponse.TeamWorkload.builder()
-                            .userId(u.getId())
-                            .userName(u.getName())
-                            .assignedTasks(assigned)
-                            .completedTasks(completed)
-                            .overdueTasks(overdue)
-                            .build();
-                })
                 .toList();
 
         DashboardResponse.AdminDashboard dashboard = DashboardResponse.AdminDashboard.builder()
                 .totalProjects(totalProjects)
-                .totalUsers(activeUsers.size())
                 .totalTasks(totalTasks)
-                .overdueTasks(overdueTasks)
-                .projectSummaries(projectSummaries)
-                .teamWorkload(teamWorkload)
+                .completedTasks(completedTasks)
+                .overdueTasks(overdueTasksCount)
+                .taskSummary(taskSummary)
+                .recentProjects(recentProjects)
                 .build();
 
         return ApiResponse.success(dashboard, "Admin dashboard retrieved successfully");

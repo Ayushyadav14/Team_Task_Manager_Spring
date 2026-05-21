@@ -8,4 +8,6 @@ import java.util.UUID;
 
 @Repository
 public interface ProjectRepository extends JpaRepository<Project, UUID> {
+    
+    java.util.List<Project> findTop5ByOrderByCreatedAtDesc();
 }
