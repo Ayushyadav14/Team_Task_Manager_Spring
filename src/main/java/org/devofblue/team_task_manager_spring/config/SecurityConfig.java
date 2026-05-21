@@ -1,9 +1,6 @@
 package org.devofblue.team_task_manager_spring.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import java.time.Instant;
-import java.util.LinkedHashMap;
-import java.util.Map;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.devofblue.team_task_manager_spring.security.JwtAuthFilter;
@@ -22,6 +19,10 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
+import java.time.Instant;
+import java.util.LinkedHashMap;
+import java.util.Map;
+
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
@@ -33,6 +34,7 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http, ObjectMapper objectMapper) throws Exception {
         http
+                .cors(cors -> cors.configure(http))
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
