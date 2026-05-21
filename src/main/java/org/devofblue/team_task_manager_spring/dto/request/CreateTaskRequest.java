@@ -1,5 +1,6 @@
 package org.devofblue.team_task_manager_spring.dto.request;
 
+import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -11,7 +12,6 @@ import org.devofblue.team_task_manager_spring.enums.Priority;
 
 import java.time.LocalDate;
 import java.util.List;
-import java.util.UUID;
 
 @Data
 @Builder
@@ -25,7 +25,8 @@ public class CreateTaskRequest {
 
     private String description;
 
-    private UUID assigneeId;
+    @Email(message = "Assignee email must be valid")
+    private String assigneeEmail;
 
     @NotNull(message = "Priority is required")
     private Priority priority;

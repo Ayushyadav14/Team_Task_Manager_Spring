@@ -62,11 +62,11 @@ public class ProjectServiceImpl implements ProjectService {
         projectMemberRepository.save(ownerMember);
 
         // Add additional members as CONTRIBUTOR
-        if (request.getMemberIds() != null) {
-            for (UUID memberId : request.getMemberIds()) {
-                if (memberId.equals(creatorId)) continue;
-                User memberUser = userRepository.findById(memberId)
-                        .orElseThrow(() -> new ResourceNotFoundException("User", "id", memberId));
+        if (request.getMemberEmails() != null) {
+            for (String memberEmail : request.getMemberEmails()) {
+                if (memberEmail == null || memberEmail.isBlank()) continue;
+                if (memberEmail.equalsIgnoreCase(creator.getEmail())) continue;
+                User memberUser = findUserByEmail(memberEmail);
                 ProjectMember member = ProjectMember.builder()
                         .project(project)
                         .user(memberUser)
@@ -145,11 +145,10 @@ public class ProjectServiceImpl implements ProjectService {
 
     @Override
     @Transactional
-    public ApiResponse<?> addMember(UUID projectId, UUID userId, ProjectRole projectRole) {
+    public ApiResponse<?> addMember(UUID projectId, String email, ProjectRole projectRole) {
         Project project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new ResourceNotFoundException("Project", "id", projectId));
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResourceNotFoundException("User", "id", userId));
+        User user = findUserByEmail(email);
 
         if (projectMemberRepository.existsByProjectAndUser(project, user)) {
             throw new BadRequestException("User is already a member of this project");
@@ -167,14 +166,13 @@ public class ProjectServiceImpl implements ProjectService {
 
     @Override
     @Transactional
-    public ApiResponse<?> removeMember(UUID projectId, UUID userId) {
+    public ApiResponse<?> removeMember(UUID projectId, String email) {
         Project project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new ResourceNotFoundException("Project", "id", projectId));
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResourceNotFoundException("User", "id", userId));
+        User user = findUserByEmail(email);
 
         if (!projectMemberRepository.existsByProjectAndUser(project, user)) {
-            throw new ResourceNotFoundException("ProjectMember", "userId", userId);
+            throw new ResourceNotFoundException("ProjectMember", "email", email);
         }
 
         // Unassign open tasks belonging to this user in the project
@@ -226,5 +224,10 @@ public class ProjectServiceImpl implements ProjectService {
                 .taskCounts(taskCounts)
                 .createdAt(project.getCreatedAt())
                 .build();
+    }
+
+    private User findUserByEmail(String email) {
+        return userRepository.findByEmailAndDeletedAtIsNull(email)
+                .orElseThrow(() -> new ResourceNotFoundException("User", "email", email));
     }
 }

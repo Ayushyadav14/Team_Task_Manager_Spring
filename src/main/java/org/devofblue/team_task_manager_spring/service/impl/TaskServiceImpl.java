@@ -43,8 +43,8 @@ public class TaskServiceImpl implements TaskService {
         checkMembership(project, creator);
 
         User assignee = null;
-        if (request.getAssigneeId() != null) {
-            assignee = findUser(request.getAssigneeId());
+        if (request.getAssigneeEmail() != null && !request.getAssigneeEmail().isBlank()) {
+            assignee = findUserByEmail(request.getAssigneeEmail());
             checkMembership(project, assignee);
         }
 
@@ -66,9 +66,14 @@ public class TaskServiceImpl implements TaskService {
 
     @Override
     @Transactional(readOnly = true)
-    public ApiResponse<?> getTasks(UUID projectId, TaskStatus status, UUID assigneeId,
+    public ApiResponse<?> getTasks(UUID projectId, TaskStatus status, String assigneeEmail,
                                    Priority priority, boolean overdue, Pageable pageable) {
         Project project = findProject(projectId);
+
+        UUID assigneeId = null;
+        if (assigneeEmail != null && !assigneeEmail.isBlank()) {
+            assigneeId = findUserByEmail(assigneeEmail).getId();
+        }
 
         Page<Task> tasks = taskRepository.findAllWithFilters(
                 project, status, assigneeId, priority, overdue, LocalDate.now(), pageable);
@@ -133,8 +138,8 @@ public class TaskServiceImpl implements TaskService {
         if (request.getTags() != null) {
             task.setTags(request.getTags());
         }
-        if (request.getAssigneeId() != null) {
-            User newAssignee = findUser(request.getAssigneeId());
+        if (request.getAssigneeEmail() != null && !request.getAssigneeEmail().isBlank()) {
+            User newAssignee = findUserByEmail(request.getAssigneeEmail());
             checkMembership(project, newAssignee);
             task.setAssignee(newAssignee);
         }
@@ -250,6 +255,11 @@ public class TaskServiceImpl implements TaskService {
         return userRepository.findById(userId)
                 .filter(u -> u.getDeletedAt() == null)
                 .orElseThrow(() -> new ResourceNotFoundException("User", "id", userId));
+    }
+
+    private User findUserByEmail(String email) {
+        return userRepository.findByEmailAndDeletedAtIsNull(email)
+                .orElseThrow(() -> new ResourceNotFoundException("User", "email", email));
     }
 
     private void checkMembership(Project project, User user) {

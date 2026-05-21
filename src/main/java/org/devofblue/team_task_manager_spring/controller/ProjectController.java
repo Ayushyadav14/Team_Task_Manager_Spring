@@ -65,17 +65,17 @@ public class ProjectController {
     public ResponseEntity<ApiResponse<?>> addMember(
             @PathVariable UUID projectId,
             @RequestBody Map<String, String> request) {
-        UUID userId = UUID.fromString(request.get("userId"));
+        String email = request.get("email");
         ProjectRole projectRole = ProjectRole.valueOf(request.get("projectRole").toUpperCase());
-        return ResponseEntity.ok(projectService.addMember(projectId, userId, projectRole));
+        return ResponseEntity.ok(projectService.addMember(projectId, email, projectRole));
     }
 
-    @DeleteMapping("/{projectId}/members/{userId}")
+    @DeleteMapping("/{projectId}/members")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<?>> removeMember(
             @PathVariable UUID projectId,
-            @PathVariable UUID userId) {
-        return ResponseEntity.ok(projectService.removeMember(projectId, userId));
+            @RequestParam("email") String email) {
+        return ResponseEntity.ok(projectService.removeMember(projectId, email));
     }
 
     @DeleteMapping("/{projectId}")

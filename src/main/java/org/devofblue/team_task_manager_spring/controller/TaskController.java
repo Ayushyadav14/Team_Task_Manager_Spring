@@ -41,11 +41,11 @@ public class TaskController {
     public ResponseEntity<ApiResponse<?>> getTasks(
             @PathVariable UUID projectId,
             @RequestParam(required = false) TaskStatus status,
-            @RequestParam(required = false) UUID assigneeId,
+            @RequestParam(required = false) String assigneeEmail,
             @RequestParam(required = false) Priority priority,
             @RequestParam(defaultValue = "false") boolean overdue,
             @PageableDefault(size = 20) Pageable pageable) {
-        return ResponseEntity.ok(taskService.getTasks(projectId, status, assigneeId, priority, overdue, pageable));
+        return ResponseEntity.ok(taskService.getTasks(projectId, status, assigneeEmail, priority, overdue, pageable));
     }
 
     @GetMapping("/{taskId}")

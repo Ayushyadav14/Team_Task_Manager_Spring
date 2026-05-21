@@ -1,5 +1,6 @@
 package org.devofblue.team_task_manager_spring.dto.request;
 
+import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
@@ -8,7 +9,6 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.util.List;
-import java.util.UUID;
 
 @Data
 @Builder
@@ -22,5 +22,5 @@ public class CreateProjectRequest {
 
     private String description;
 
-    private List<UUID> memberIds;
+    private List<@Email(message = "Member email must be valid") String> memberEmails;
 }

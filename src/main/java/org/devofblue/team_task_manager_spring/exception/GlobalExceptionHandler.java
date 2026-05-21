@@ -19,6 +19,9 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(ResourceNotFoundException.class)
     public ResponseEntity<Map<String, Object>> handleResourceNotFound(ResourceNotFoundException ex, HttpServletRequest request) {
+        if ("User".equals(ex.getResourceName()) && "email".equalsIgnoreCase(ex.getFieldName())) {
+            return buildResponse(HttpStatus.NOT_FOUND, "Not Found", "User not found", request.getRequestURI());
+        }
         return buildResponse(HttpStatus.NOT_FOUND, "Not Found", ex.getMessage(), request.getRequestURI());
     }
 

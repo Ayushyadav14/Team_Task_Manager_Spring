@@ -13,7 +13,7 @@ import java.util.UUID;
 
 public interface TaskService {
     ApiResponse<TaskResponse> createTask(UUID projectId, CreateTaskRequest request, UUID creatorId);
-    ApiResponse<?> getTasks(UUID projectId, TaskStatus status, UUID assigneeId, Priority priority, boolean overdue, Pageable pageable);
+    ApiResponse<?> getTasks(UUID projectId, TaskStatus status, String assigneeEmail, Priority priority, boolean overdue, Pageable pageable);
     ApiResponse<TaskResponse> getTaskById(UUID projectId, UUID taskId, UUID userId, Role role);
     ApiResponse<TaskResponse> updateTask(UUID projectId, UUID taskId, CreateTaskRequest request, UUID userId, Role role);
     ApiResponse<TaskResponse> updateTaskStatus(UUID projectId, UUID taskId, UpdateTaskStatusRequest request, UUID userId, Role role);
