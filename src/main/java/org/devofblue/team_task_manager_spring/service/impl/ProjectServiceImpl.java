@@ -231,6 +231,18 @@ public class ProjectServiceImpl implements ProjectService {
             taskCounts.put(status.name(), taskRepository.countByProjectAndStatus(project, status));
         }
 
+        List<Task> projectTasks = taskRepository.findAllByProject(project, org.springframework.data.domain.Pageable.unpaged()).getContent();
+        List<ProjectResponse.ProjectTaskInfo> taskInfos = projectTasks.stream()
+                .map(t -> ProjectResponse.ProjectTaskInfo.builder()
+                        .id(t.getId())
+                        .title(t.getTitle())
+                        .status(t.getStatus().name())
+                        .priority(t.getPriority().name())
+                        .assigneeName(t.getAssignee() != null ? t.getAssignee().getName() : null)
+                        .dueDate(t.getDueDate())
+                        .build())
+                .toList();
+
         return ProjectResponse.builder()
                 .id(project.getId())
                 .name(project.getName())
@@ -239,6 +251,7 @@ public class ProjectServiceImpl implements ProjectService {
                 .createdBy(project.getCreatedBy().getName())
                 .members(memberInfos)
                 .taskCounts(taskCounts)
+                .tasks(taskInfos)
                 .createdAt(project.getCreatedAt())
                 .build();
     }

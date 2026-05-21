@@ -22,7 +22,21 @@ public class ProjectResponse {
     private String createdBy;
     private List<MemberInfo> members;
     private Map<String, Long> taskCounts;
+    private List<ProjectTaskInfo> tasks;
     private Instant createdAt;
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class ProjectTaskInfo {
+        private UUID id;
+        private String title;
+        private String status;
+        private String priority;
+        private String assigneeName;
+        private java.time.LocalDate dueDate;
+    }
 
     @Data
     @Builder
