@@ -27,6 +27,7 @@ public class DashboardServiceImpl implements DashboardService {
     private final ProjectRepository projectRepository;
     private final ProjectMemberRepository projectMemberRepository;
     private final UserRepository userRepository;
+    private final JoinRequestRepository joinRequestRepository;
 
     @Override
     @Transactional(readOnly = true)
@@ -54,6 +55,7 @@ public class DashboardServiceImpl implements DashboardService {
                         .id(t.getId().toString())
                         .title(t.getTitle())
                         .status(t.getStatus().name())
+                        .priority(t.getPriority().name())
                         .dueDate(t.getDueDate())
                         .build())
                 .toList();
@@ -63,8 +65,40 @@ public class DashboardServiceImpl implements DashboardService {
                         .id(t.getId().toString())
                         .title(t.getTitle())
                         .status(t.getStatus().name())
+                        .priority(t.getPriority().name())
                         .dueDate(t.getDueDate())
                         .build())
+                .toList();
+
+        List<org.devofblue.team_task_manager_spring.entity.JoinRequest> myJoinRequests = joinRequestRepository.findByStatus(org.devofblue.team_task_manager_spring.enums.JoinRequestStatus.PENDING).stream()
+                .filter(jr -> projectMemberRepository.existsByProjectAndUser(jr.getProject(), user))
+                .toList();
+
+        Map<Project, Long> joinRequestCounts = myJoinRequests.stream()
+                .collect(Collectors.groupingBy(org.devofblue.team_task_manager_spring.entity.JoinRequest::getProject, Collectors.counting()));
+
+        List<DashboardResponse.ActivityChartItem> activity = joinRequestCounts.entrySet().stream()
+                .map(e -> new DashboardResponse.ActivityChartItem(e.getKey().getName(), e.getValue(), e.getKey().getId().toString()))
+                .toList();
+
+        List<org.devofblue.team_task_manager_spring.entity.ProjectMember> memberships = projectMemberRepository.findAllByUser(user);
+        List<Project> userProjects = memberships.stream()
+                .map(org.devofblue.team_task_manager_spring.entity.ProjectMember::getProject)
+                .sorted(Comparator.comparing(Project::getCreatedAt).reversed())
+                .limit(5)
+                .toList();
+
+        List<DashboardResponse.DashboardProject> recentProjects = userProjects.stream()
+                .map(p -> {
+                    long pendingTasks = taskRepository.countByProject(p) - taskRepository.countByProjectAndStatus(p, TaskStatus.DONE);
+                    return DashboardResponse.DashboardProject.builder()
+                            .id(p.getId().toString())
+                            .name(p.getName())
+                            .status(p.getStatus())
+                            .createdAt(p.getCreatedAt())
+                            .pendingTasks(pendingTasks)
+                            .build();
+                })
                 .toList();
 
         DashboardResponse.MyDashboard dashboard = DashboardResponse.MyDashboard.builder()
@@ -75,6 +109,8 @@ public class DashboardServiceImpl implements DashboardService {
                 .taskSummary(taskSummary)
                 .recentTasks(recentTasks)
                 .overdueTasksList(overdueTasksList)
+                .activity(activity)
+                .recentProjects(recentProjects)
                 .build();
 
         return ApiResponse.success(dashboard, "Dashboard retrieved successfully");
@@ -97,12 +133,46 @@ public class DashboardServiceImpl implements DashboardService {
 
         List<Project> recent = projectRepository.findTop5ByOrderByCreatedAtDesc();
         List<DashboardResponse.DashboardProject> recentProjects = recent.stream()
-                .map(p -> DashboardResponse.DashboardProject.builder()
-                        .id(p.getId().toString())
-                        .name(p.getName())
-                        .status(p.getStatus())
-                        .createdAt(p.getCreatedAt())
+                .map(p -> {
+                    long pendingTasks = taskRepository.countByProject(p) - taskRepository.countByProjectAndStatus(p, TaskStatus.DONE);
+                    return DashboardResponse.DashboardProject.builder()
+                            .id(p.getId().toString())
+                            .name(p.getName())
+                            .status(p.getStatus())
+                            .createdAt(p.getCreatedAt())
+                            .pendingTasks(pendingTasks)
+                            .build();
+                })
+                .toList();
+
+        List<Task> recentTasksData = taskRepository.findTop5ByOrderByUpdatedAtDesc();
+        List<DashboardResponse.DashboardTask> recentTasks = recentTasksData.stream()
+                .map(t -> DashboardResponse.DashboardTask.builder()
+                        .id(t.getId().toString())
+                        .title(t.getTitle())
+                        .status(t.getStatus().name())
+                        .priority(t.getPriority().name())
+                        .dueDate(t.getDueDate())
                         .build())
+                .toList();
+
+        List<Task> overdueTaskList = taskRepository.findAllOverdue(today);
+        List<DashboardResponse.DashboardTask> overdueTasksList = overdueTaskList.stream()
+                .map(t -> DashboardResponse.DashboardTask.builder()
+                        .id(t.getId().toString())
+                        .title(t.getTitle())
+                        .status(t.getStatus().name())
+                        .priority(t.getPriority().name())
+                        .dueDate(t.getDueDate())
+                        .build())
+                .toList();
+
+        List<org.devofblue.team_task_manager_spring.entity.JoinRequest> allJoinRequests = joinRequestRepository.findByStatus(org.devofblue.team_task_manager_spring.enums.JoinRequestStatus.PENDING);
+        Map<Project, Long> adminJoinRequestCounts = allJoinRequests.stream()
+                .collect(Collectors.groupingBy(org.devofblue.team_task_manager_spring.entity.JoinRequest::getProject, Collectors.counting()));
+
+        List<DashboardResponse.ActivityChartItem> activity = adminJoinRequestCounts.entrySet().stream()
+                .map(e -> new DashboardResponse.ActivityChartItem(e.getKey().getName(), e.getValue(), e.getKey().getId().toString()))
                 .toList();
 
         DashboardResponse.AdminDashboard dashboard = DashboardResponse.AdminDashboard.builder()
@@ -112,6 +182,9 @@ public class DashboardServiceImpl implements DashboardService {
                 .overdueTasks(overdueTasksCount)
                 .taskSummary(taskSummary)
                 .recentProjects(recentProjects)
+                .recentTasks(recentTasks)
+                .overdueTasksList(overdueTasksList)
+                .activity(activity)
                 .build();
 
         return ApiResponse.success(dashboard, "Admin dashboard retrieved successfully");

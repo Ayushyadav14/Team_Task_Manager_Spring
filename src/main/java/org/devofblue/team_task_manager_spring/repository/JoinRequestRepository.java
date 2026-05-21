@@ -17,4 +17,5 @@ public interface JoinRequestRepository extends JpaRepository<JoinRequest, UUID> 
     List<JoinRequest> findByProjectIdAndStatus(UUID projectId, JoinRequestStatus status);
     Optional<JoinRequest> findByProjectAndUser(Project project, User user);
     boolean existsByProjectAndUserAndStatus(Project project, User user, JoinRequestStatus status);
+    List<JoinRequest> findByStatus(JoinRequestStatus status);
 }

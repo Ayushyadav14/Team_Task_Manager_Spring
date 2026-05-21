@@ -17,4 +17,5 @@ public interface ProjectService {
     ApiResponse<?> addMember(UUID projectId, String email, ProjectRole projectRole);
     ApiResponse<?> removeMember(UUID projectId, String email);
     ApiResponse<?> deleteProject(UUID projectId);
+    ApiResponse<?> searchProjects(String query);
 }

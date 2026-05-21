@@ -10,4 +10,6 @@ import java.util.UUID;
 public interface ProjectRepository extends JpaRepository<Project, UUID> {
     
     java.util.List<Project> findTop5ByOrderByCreatedAtDesc();
+    
+    java.util.List<Project> findByNameContainingIgnoreCase(String name);
 }

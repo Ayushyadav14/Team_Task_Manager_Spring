@@ -43,6 +43,11 @@ public class ProjectController {
                 userPrincipal.getId(), userPrincipal.getUser().getRole(), pageable));
     }
 
+    @GetMapping("/search")
+    public ResponseEntity<ApiResponse<?>> searchProjects(@RequestParam(name = "q", defaultValue = "") String query) {
+        return ResponseEntity.ok(projectService.searchProjects(query));
+    }
+
     @GetMapping("/{projectId}")
     public ResponseEntity<ApiResponse<ProjectResponse>> getProjectById(
             @PathVariable UUID projectId,

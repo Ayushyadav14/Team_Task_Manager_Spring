@@ -197,6 +197,23 @@ public class ProjectServiceImpl implements ProjectService {
         return ApiResponse.success("Project deleted successfully");
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public ApiResponse<?> searchProjects(String query) {
+        List<Project> projects;
+        if (query == null || query.trim().isEmpty()) {
+            projects = new ArrayList<>();
+        } else {
+            projects = projectRepository.findByNameContainingIgnoreCase(query.trim());
+        }
+
+        List<ProjectResponse> responses = projects.stream()
+                .map(this::mapToProjectResponse)
+                .toList();
+
+        return ApiResponse.success(responses, "Projects searched successfully");
+    }
+
     private ProjectResponse mapToProjectResponse(Project project) {
         List<ProjectMember> members = projectMemberRepository.findAllByProject(project);
 
