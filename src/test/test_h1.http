@@ -812,3 +812,126 @@ Authorization: Bearer {{adminToken}}
         client.assert(response.status === 200, "Expected 200 OK");
     });
 %}
+
+
+### ──────────────────────────────────────────
+### Group: Join Requests
+### ──────────────────────────────────────────
+
+### Join Requests: setup - login admin
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{adminEmail}}",
+  "password": "{{adminPassword}}"
+}
+
+> {%
+    client.global.set("adminToken", response.body.data.token);
+    client.global.set("adminRefreshToken", response.body.data.refreshToken);
+    client.global.set("adminUserId", response.body.data.userId);
+    client.test("login admin returns token", function () {
+        client.assert(response.status === 200, "Expected 200 OK");
+        client.assert(!!response.body.data.token, "Expected access token");
+    });
+%}
+
+
+### Join Requests: setup - register new member
+POST {{baseUrl}}/api/auth/register
+Content-Type: application/json
+
+{
+  "name": "Join Request User",
+  "email": "joinuser+{{$timestamp}}@example.com",
+  "password": "{{memberPassword}}"
+}
+
+> {%
+    client.global.set("joinUserEmail", response.body.data.email);
+    client.test("register member returns email", function () {
+        client.assert(response.status === 201, "Expected 201 Created");
+        client.assert(!!response.body.data.email, "Expected email in response");
+    });
+%}
+
+
+### Join Requests: setup - login new member
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{joinUserEmail}}",
+  "password": "{{memberPassword}}"
+}
+
+> {%
+    client.global.set("joinUserToken", response.body.data.token);
+    client.test("login new member returns token", function () {
+        client.assert(response.status === 200, "Expected 200 OK");
+        client.assert(!!response.body.data.token, "Expected access token");
+    });
+%}
+
+
+### Join Requests: setup - create project (admin)
+POST {{baseUrl}}/api/projects
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "name": "Join Request Project",
+  "description": "Project created to test join requests"
+}
+
+> {%
+    client.global.set("joinProjectId", response.body.data.id);
+    client.test("create project", function () {
+        client.assert(response.status === 201, "Expected 201 Created");
+        client.assert(!!response.body.data.id, "Expected project id");
+    });
+%}
+
+
+### Join Requests: member requests to join
+POST {{baseUrl}}/api/projects/{{joinProjectId}}/join-requests
+Authorization: Bearer {{joinUserToken}}
+Content-Type: application/json
+
+> {%
+    client.test("request to join", function () {
+        client.assert(response.status === 201, "Expected 201 Created");
+        client.assert(!!response.body.data.id, "Expected request id");
+        client.global.set("joinRequestId", response.body.data.id);
+    });
+%}
+
+
+### Join Requests: get join requests (admin)
+GET {{baseUrl}}/api/projects/{{joinProjectId}}/join-requests
+Authorization: Bearer {{adminToken}}
+
+> {%
+    client.test("get join requests", function () {
+        client.assert(response.status === 200, "Expected 200 OK");
+        client.assert(response.body.data.length >= 1, "Expected at least 1 join request");
+    });
+%}
+
+
+### Join Requests: approve join request (admin)
+PATCH {{baseUrl}}/api/projects/{{joinProjectId}}/join-requests/{{joinRequestId}}
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "status": "APPROVED"
+}
+
+> {%
+    client.test("approve join request", function () {
+        client.assert(response.status === 200, "Expected 200 OK");
+        client.assert(response.body.data.status === "APPROVED", "Expected status to be APPROVED");
+    });
+%}
